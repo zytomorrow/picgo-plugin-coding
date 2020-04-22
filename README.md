@@ -18,4 +18,4 @@ npm i picgo-plugin-coding
 
 ### Demo
 
-![Demo](./static/demo.jpg)
+![Demo](https://raw.githubusercontent.com/zytomorrow/picgo-plugin-coding/master/static/demo.jpg)
