@@ -1,6 +1,6 @@
 {
   "name": "picgo-plugin-coding",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "picgo uploader for coding",
   "main": "src/index.js",
   "publishConfig": {

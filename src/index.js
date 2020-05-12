@@ -98,7 +98,7 @@ module.exports = (ctx) => {
         type: 'input',
         default: userConfig.groupName,
         required: true,
-        message: 'xxxxx',
+        message: 'groupName',
         alias: '团队名称'
       },
       {
@@ -122,7 +122,7 @@ module.exports = (ctx) => {
         type: 'input',
         default: userConfig.Token,
         required: true,
-        message: 'a1234456',
+        message: 'Token',
         alias: 'Token'
       },
       {
