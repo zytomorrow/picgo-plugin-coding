@@ -1,10 +1,11 @@
 {
   "name": "picgo-plugin-coding",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "picgo uploader for coding",
   "main": "src/index.js",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://npm.pkg.github.com/"
   },
   "homepage": "https://github.com/zytomorrow/picgo-plugin-coding",
   "scripts": {
