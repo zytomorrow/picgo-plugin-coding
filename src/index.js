@@ -40,11 +40,11 @@ module.exports = (ctx) => {
     }
 
     const groupName = userConfig.groupName;
-    const userName = userConfig.userName;
     const project = userConfig.Project;
     const token = userConfig.Token;
     const branch = userConfig.branch || 'master';
-    const realUrl = `https://${groupName}.coding.net/api/user/${userName}/project/${project}/depot/${project}/git/upload/${branch}/`;
+    const floder = userConfig.floder || '';
+    const realUrl = `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${project}/git/upload/${branch}/${floder}`;
     try {
       const imgList = ctx.output;
       for (const i in imgList) {
@@ -102,14 +102,6 @@ module.exports = (ctx) => {
         alias: '团队名称'
       },
       {
-        name: 'userName',
-        type: 'input',
-        default: userConfig.userName,
-        required: true,
-        message: 'userName',
-        alias: '用户名称'
-      },
-      {
         name: 'Project',
         type: 'input',
         default: userConfig.Project,
@@ -132,6 +124,14 @@ module.exports = (ctx) => {
         required: true,
         message: 'master',
         alias: '分支'
+      },
+      {
+        name: 'floder',
+        type: 'input',
+        default: userConfig.floder,
+        required: false,
+        message: '',
+        alias: '存储文件夹'
       }
     ];
   };
