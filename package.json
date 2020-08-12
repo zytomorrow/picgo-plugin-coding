@@ -1,6 +1,6 @@
 {
   "name": "picgo-plugin-coding",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "picgo uploader for coding",
   "main": "src/index.js",
   "publishConfig": {
@@ -34,5 +34,9 @@
   },
   "dependencies": {
 
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:zytomorrow/picgo-plugin-coding.git"
   }
 }
