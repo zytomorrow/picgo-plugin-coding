@@ -15,6 +15,7 @@ npm i picgo-plugin-coding
 - token: coding.net's api token
 - 分支: 需要存放图片的分支。默认master
 - 存储文件夹: 需要存放照片的指定文件夹
+- 按年月日存放: 图片自动按日期路径存放与库中，可以存储文件夹混合使用
 
 ### Demo
 

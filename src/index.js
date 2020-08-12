@@ -44,7 +44,25 @@ module.exports = (ctx) => {
     const token = userConfig.Token;
     const branch = userConfig.branch || 'master';
     const floder = userConfig.floder || '';
-    const realUrl = `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${project}/git/upload/${branch}/${floder}`;
+    const saveWithDate = userConfig.save_with_date;
+    let realUrl = '';
+    if (floder) {
+      if (saveWithDate) {
+        const date = new Date();
+        realUrl = `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${project}/git/upload/${branch}/${floder}/${date .getFullYear()}/${date .getMonth()+1}/${date .getDate()}`;
+      } else {
+        realUrl = `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${project}/git/upload/${branch}/${floder}`;
+      }
+    } else {
+      if (saveWithDate) {
+        const date = new Date();
+        realUrl = `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${project}/git/upload/${branch}/${date .getFullYear()}/${date .getMonth()+1}/${date .getDate()}`;
+      } else {
+        realUrl = `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${project}/git/upload/${branch}`;
+      }
+
+    }
+
     try {
       const imgList = ctx.output;
       for (const i in imgList) {
@@ -132,6 +150,13 @@ module.exports = (ctx) => {
         required: false,
         message: '',
         alias: '存储文件夹'
+      },
+      {
+        name: 'save_with_date',
+        type: 'confirm',
+        required: false,
+        default: userConfig.saveWithDate,
+        alias: '按年月日存放'
       }
     ];
   };
