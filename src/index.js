@@ -45,24 +45,25 @@ module.exports = (ctx) => {
     const branch = userConfig.branch || 'master';
     const floder = userConfig.floder || '';
     const saveWithDate = userConfig.save_with_date;
-    let realUrl = '';
+    let suffixUrl = '';
+    const preUrl = `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${project}/git/upload`;
     if (floder) {
       if (saveWithDate) {
         const date = new Date();
-        realUrl = `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${project}/git/upload/${branch}/${floder}/${date .getFullYear()}/${date .getMonth()+1}/${date .getDate()}`;
+        suffixUrl = `${branch}/${floder}/${date .getFullYear()}/${date .getMonth() + 1}/${date .getDate()}`;
       } else {
-        realUrl = `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${project}/git/upload/${branch}/${floder}`;
+        suffixUrl = `${branch}/${floder}`;
       }
     } else {
       if (saveWithDate) {
         const date = new Date();
-        realUrl = `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${project}/git/upload/${branch}/${date .getFullYear()}/${date .getMonth()+1}/${date .getDate()}`;
+        suffixUrl = `${branch}/${date .getFullYear()}/${date .getMonth() + 1}/${date .getDate()}`;
       } else {
-        realUrl = `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${project}/git/upload/${branch}`;
+        suffixUrl = `${branch}`;
       }
 
     }
-
+    const realUrl = `${preUrl}/${suffixUrl}`;
     try {
       const imgList = ctx.output;
       for (const i in imgList) {
@@ -94,7 +95,7 @@ module.exports = (ctx) => {
         ctx.log.info(JSON.parse(data));
         delete imgList[i].buffer;
         if (JSON.parse(data).code === 0) {
-          imgList[i].imgUrl = `https://${groupName}.coding.net/p/${project}/d/${project}/git/raw/${branch}/${fileName}`;
+          imgList[i].imgUrl = `https://${groupName}.coding.net/p/${project}/d/${project}/git/raw/${suffixUrl}`;
         }
       }
     } catch (err) {
