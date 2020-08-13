@@ -95,7 +95,7 @@ module.exports = (ctx) => {
         ctx.log.info(JSON.parse(data));
         delete imgList[i].buffer;
         if (JSON.parse(data).code === 0) {
-          imgList[i].imgUrl = `https://${groupName}.coding.net/p/${project}/d/${project}/git/raw/${suffixUrl}`;
+          imgList[i].imgUrl = `https://${groupName}.coding.net/p/${project}/d/${project}/git/raw/${suffixUrl}/${fileName}`;
         }
       }
     } catch (err) {
