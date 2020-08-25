@@ -45,25 +45,32 @@ module.exports = (ctx) => {
     const branch = userConfig.branch || 'master';
     const floder = userConfig.floder || '';
     const saveWithDate = userConfig.save_with_date;
+    let basicUrl = userConfig.customUrl || `https://${groupName}.coding.net/p/${project}/d/${project}/git/raw/${branch}`;
+    if (basicUrl[basicUrl.length - 1] === '/') {
+      basicUrl = basicUrl.substr(0, basicUrl.length - 2);
+    }
+    ctx.log.info(`customUrl:${basicUrl}`);
     let suffixUrl = '';
     const preUrl = `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${project}/git/upload`;
     if (floder) {
       if (saveWithDate) {
         const date = new Date();
-        suffixUrl = `${branch}/${floder}/${date .getFullYear()}/${date .getMonth() + 1}/${date .getDate()}`;
+        suffixUrl = `${floder}/${date .getFullYear()}/${date .getMonth() + 1}/${date .getDate()}`;
       } else {
-        suffixUrl = `${branch}/${floder}`;
+        suffixUrl = `${floder}`;
       }
     } else {
       if (saveWithDate) {
         const date = new Date();
-        suffixUrl = `${branch}/${date .getFullYear()}/${date .getMonth() + 1}/${date .getDate()}`;
-      } else {
-        suffixUrl = `${branch}`;
+        suffixUrl = `${date .getFullYear()}/${date .getMonth() + 1}/${date .getDate()}`;
       }
-
     }
-    const realUrl = `${preUrl}/${suffixUrl}`;
+    let realUrl = '';
+    if (suffixUrl.length !== 0) {
+       realUrl = `${preUrl}/${suffixUrl}`;
+    } else {
+       realUrl = `${preUrl}`;
+    }
     try {
       const imgList = ctx.output;
       for (const i in imgList) {
@@ -94,8 +101,14 @@ module.exports = (ctx) => {
         const data = await ctx.Request.request(postConfig);
         ctx.log.info(JSON.parse(data));
         delete imgList[i].buffer;
+        // imgList[i].imgUrl = `https://${groupName}.coding.net/p/${project}/d/${project}/git/raw/${branch}/${fileName}`;
         if (JSON.parse(data).code === 0) {
-          imgList[i].imgUrl = `https://${groupName}.coding.net/p/${project}/d/${project}/git/raw/${suffixUrl}/${fileName}`;
+          if (suffixUrl.length !== 0) {
+            imgList[i].imgUrl = `${customUrl}/${fileName}`;
+          } else {
+            imgList[i].imgUrl = `${customUrl}/${suffixUrl}/${fileName}`;
+          }
+
         }
       }
     } catch (err) {
@@ -158,6 +171,13 @@ module.exports = (ctx) => {
         required: false,
         default: userConfig.saveWithDate,
         alias: '按年月日存放'
+      },
+      {
+        name: 'customUrl',
+        type: 'input',
+        required: false,
+        default: userConfig.input,
+        alias: '自定义域名'
       }
     ];
   };
