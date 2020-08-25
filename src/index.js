@@ -49,9 +49,8 @@ module.exports = (ctx) => {
     if (basicUrl[basicUrl.length - 1] === '/') {
       basicUrl = basicUrl.substr(0, basicUrl.length - 2);
     }
-    ctx.log.info(`customUrl:${basicUrl}`);
     let suffixUrl = '';
-    const preUrl = `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${project}/git/upload`;
+    const preUrl = `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${project}/git/upload/${branch}`;
     if (floder) {
       if (saveWithDate) {
         const date = new Date();
@@ -103,10 +102,10 @@ module.exports = (ctx) => {
         delete imgList[i].buffer;
         // imgList[i].imgUrl = `https://${groupName}.coding.net/p/${project}/d/${project}/git/raw/${branch}/${fileName}`;
         if (JSON.parse(data).code === 0) {
-          if (suffixUrl.length !== 0) {
-            imgList[i].imgUrl = `${customUrl}/${fileName}`;
+          if (suffixUrl.length === 0) {
+            imgList[i].imgUrl = `${basicUrl}/${fileName}`;
           } else {
-            imgList[i].imgUrl = `${customUrl}/${suffixUrl}/${fileName}`;
+            imgList[i].imgUrl = `${basicUrl}/${suffixUrl}/${fileName}`;
           }
 
         }
