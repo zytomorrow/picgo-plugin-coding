@@ -41,16 +41,17 @@ module.exports = (ctx) => {
 
     const groupName = userConfig.groupName;
     const project = userConfig.Project;
+    const repoName = userConfig.repoName;
     const token = userConfig.Token;
     const branch = userConfig.branch || 'master';
     const floder = userConfig.floder || '';
     const saveWithDate = userConfig.save_with_date;
-    let basicUrl = userConfig.customUrl || `https://${groupName}.coding.net/p/${project}/d/${project}/git/raw/${branch}`;
+    let basicUrl = userConfig.customUrl || `https://${groupName}.coding.net/p/${project}/d/${repoName}/git/raw/${branch}`;
     if (basicUrl[basicUrl.length - 1] === '/') {
       basicUrl = basicUrl.substr(0, basicUrl.length - 2);
     }
     let suffixUrl = '';
-    const preUrl = `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${project}/git/upload/${branch}`;
+    const preUrl = `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${repoName}/git/upload/${branch}`;
     if (floder) {
       if (saveWithDate) {
         const date = new Date();
@@ -141,6 +142,14 @@ module.exports = (ctx) => {
         alias: '项目名称'
       },
       {
+        name: 'repoName',
+        type: 'input',
+        default: userConfig.repoName,
+        required: true,
+        message: 'repoName',
+        alias: '仓库名称'
+      },
+      {
         name: 'Token',
         type: 'input',
         default: userConfig.Token,
@@ -175,7 +184,7 @@ module.exports = (ctx) => {
         name: 'customUrl',
         type: 'input',
         required: false,
-        default: userConfig.input,
+        default: userConfig.customUrl,
         alias: '自定义域名'
       }
     ];
