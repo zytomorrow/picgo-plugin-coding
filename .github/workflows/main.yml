@@ -2,7 +2,10 @@
 
 name: CI
 
-on: push
+on:
+  push
+  branches:
+    - lite
 
 jobs:
   publish:
@@ -11,7 +14,8 @@ jobs:
       - uses: actions/checkout@v1
       - uses: actions/setup-node@v1
         with:
-          node-version: 10
+          node-version: 12
+      - uses: git checkout lite
       - run: npm install
       - uses: JS-DevTools/npm-publish@v1
         with:

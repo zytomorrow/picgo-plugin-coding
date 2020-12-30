@@ -1,4 +1,4 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 
 const postOptions = (realUrl, lastCommit, cookies, fileName, image, XSRF_TOKEN) => {
   const formData = {
@@ -26,8 +26,11 @@ const postOptions = (realUrl, lastCommit, cookies, fileName, image, XSRF_TOKEN) 
   };
 };
 
-const getCookies = async (groupName, account, password) => {
-  const browser = await puppeteer.launch();
+const getCookies = async (broswerPath, groupName, account, password) => {
+  const browser = await puppeteer.launch({
+    executablePath: broswerPath,
+    headless: false
+  });
   const page = await browser.newPage();
   await page.goto(`https://${groupName}.coding.net/login`,  {waitUntil: 'networkidle0'});
   await page.content();
@@ -198,7 +201,14 @@ module.exports = (ctx) => {
         message: '可只填仓库名称',
         alias: '仓库名称/分支'
       },
-
+      {
+        name: 'browserPath',
+        type: 'input',
+        default: userConfig.browserPath,
+        required: true,
+        message: '浏览器位置',
+        alias: '浏览器位置'
+      },
       {
         name: 'dirStructure',
         type: 'input',

@@ -1,5 +1,5 @@
 {
-  "name": "picgo-plugin-coding",
+  "name": "picgo-plugin-coding-lite",
   "version": "1.0.0",
   "description": "picgo uploader for coding",
   "main": "src/index.js",
@@ -16,6 +16,7 @@
   "keywords": [
     "picgo",
     "picgo-gui-plugin",
+    "picgo-gui-plugin-lite",
     "picgo-plugin"
   ],
   "author": "zytomorrow",
@@ -33,7 +34,7 @@
     "eslint-config-prettier": "^6.11.0"
   },
   "dependencies": {
-    "puppeteer": "^5.5.0"
+    "puppeteer-core": "^5.5.0"
   },
   "repository": {
     "type": "git",
