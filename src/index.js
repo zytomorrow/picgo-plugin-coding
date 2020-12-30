@@ -1,4 +1,6 @@
-const postOptions = (realUrl, lastCommit, token, fileName, image) => {
+const puppeteer = require('puppeteer');
+
+const postOptions = (realUrl, lastCommit, cookies, fileName, image, XSRF_TOKEN) => {
   const formData = {
     message: `upload ${fileName}`,
     lastCommitSha: lastCommit,
@@ -17,11 +19,34 @@ const postOptions = (realUrl, lastCommit, token, fileName, image) => {
     headers: {
       contentType: 'multipart/form-data',
       'User-Agent': 'PicGo',
-      Authorization: `token ${token}`
+      Cookie: cookies,
+      'X-XSRF-TOKEN': XSRF_TOKEN
     },
     formData: formData
-
   };
+};
+
+const getCookies = async (groupName, account, password) => {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.goto(`https://${groupName}.coding.net/login`,  {waitUntil: 'networkidle0'});
+  await page.content();
+  await page.type("#account", account);
+  await page.type("#password", password);
+  await page.click("#login > div > div.auth-root-3ssdaLNMpv > main > div.form-container-1lsWy1AThz > form > div.form-content-32QJSI8qUW > div.info-login-3niBdtBCEI > label > div > span > input");
+  await page.click("#login > div > div.auth-root-3ssdaLNMpv > main > div.form-container-1lsWy1AThz > form > div.form-button-group-1pG0raRyP0 > button");
+  await page.waitForNavigation();
+  const cookies_kv = await page.cookies();
+  await browser.close();
+  let cookies = '';
+  let XSRF_TOKEN = '';
+  cookies_kv.forEach(function (item) {
+    cookies += `${item.name}=${item.value};`;
+    if (item.name === 'XSRF-TOKEN') {
+      XSRF_TOKEN = item.value;
+    }
+  });
+  return {cookies, XSRF_TOKEN};
 };
 
 module.exports = (ctx) => {
@@ -39,13 +64,28 @@ module.exports = (ctx) => {
       throw new Error("Can't find uploader config");
     }
 
-    const groupName = userConfig.groupName;
-    const project = userConfig.Project;
-    const repoName = userConfig.repoName;
-    const token = userConfig.Token;
-    const branch = userConfig.branch || 'master';
-    const floder = userConfig.floder || '';
-    const saveWithDate = userConfig.save_with_date;
+    // 解析group Projetc
+    const groupNameProject = userConfig.groupNameProject.split('/');
+    const groupName = groupNameProject[0];
+    const project = groupNameProject[1];
+    // 解析 repo branch
+    const repoNameBranch = userConfig.repoNameBranch.split('/');
+    const repoName = repoNameBranch[0];
+    const branch = repoNameBranch[1] || 'master';
+    // 保存结构确定
+    let floder = '';
+    let saveWithDate = false;
+    const dirStructure = userConfig.dirStructure || '';
+    const splitChar = dirStructure.indexOf('/');
+    if (splitChar !== -1) {
+      floder = dirStructure.slice(0, splitChar);
+    }
+    if (dirStructure.slice(splitChar + 1, dirStructure.length) === ':date') {
+      saveWithDate = true;
+    }
+    const account = userConfig.account;
+    const password = userConfig.passwd;
+    const {cookies, XSRF_TOKEN} = await getCookies(groupName, account, password);
     let basicUrl = userConfig.customUrl || `https://${groupName}.coding.net/p/${project}/d/${repoName}/git/raw/${branch}`;
     if (basicUrl[basicUrl.length - 1] === '/') {
       basicUrl = basicUrl.substr(0, basicUrl.length - 2);
@@ -67,9 +107,9 @@ module.exports = (ctx) => {
     }
     let realUrl = '';
     if (suffixUrl.length !== 0) {
-       realUrl = `${preUrl}/${suffixUrl}`;
+      realUrl = `${preUrl}/${suffixUrl}`;
     } else {
-       realUrl = `${preUrl}`;
+      realUrl = `${preUrl}`;
     }
     try {
       const imgList = ctx.output;
@@ -78,12 +118,12 @@ module.exports = (ctx) => {
         // eslint-disable-next-line no-await-in-loop
         const rep = await ctx.Request.request({
           method: 'GET',
-          url: realUrl,
+          url: `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${repoName}/git/tree/${branch}`,
           headers: {
-            Authorization: `token ${token}`
+            Cookie: cookies
           }
         });
-        lastCommit = JSON.parse(rep).data.lastCommit;
+        lastCommit = JSON.parse(rep).data.lastCommit.commitId;
         let image = imgList[i].buffer;
         if (!image && imgList[i].base64Image) {
           image = Buffer.from(imgList[i].base64Image, 'base64');
@@ -91,11 +131,12 @@ module.exports = (ctx) => {
 
         const fileName = imgList[i].fileName.replace(/\s/g, '');
         const postConfig = postOptions(
-          realUrl,
-          lastCommit,
-          token,
-          fileName,
-          image
+            realUrl,
+            lastCommit,
+            cookies,
+            fileName,
+            image,
+            XSRF_TOKEN
         );
         // eslint-disable-next-line no-await-in-loop
         const data = await ctx.Request.request(postConfig);
@@ -126,59 +167,45 @@ module.exports = (ctx) => {
     }
     return [
       {
-        name: 'groupName',
+        name: 'groupNameProject',
         type: 'input',
-        default: userConfig.groupName,
+        default: userConfig.groupNameProject,
         required: true,
-        message: 'groupName',
-        alias: '团队名称'
+        message: 'groupNameProject',
+        alias: '团队名称/项目名称'
       },
       {
-        name: 'Project',
+        name: 'account',
         type: 'input',
-        default: userConfig.Project,
+        default: userConfig.account,
         required: true,
-        message: 'Project',
-        alias: '项目名称'
+        message: 'account',
+        alias: '登录手机号或邮箱'
       },
       {
-        name: 'repoName',
-        type: 'input',
-        default: userConfig.repoName,
+        name: 'passwd',
+        type: 'password',
+        default: userConfig.passwd,
         required: true,
-        message: 'repoName',
-        alias: '仓库名称'
+        message: 'passwd',
+        alias: '密码'
       },
       {
-        name: 'Token',
+        name: 'repoNameBranch',
         type: 'input',
-        default: userConfig.Token,
+        default: userConfig.repoNameBranch,
         required: true,
-        message: 'Token',
-        alias: 'Token'
+        message: '可只填仓库名称',
+        alias: '仓库名称/分支'
       },
+
       {
-        name: 'branch',
+        name: 'dirStructure',
         type: 'input',
-        default: userConfig.branch,
-        required: true,
-        message: 'master',
-        alias: '分支'
-      },
-      {
-        name: 'floder',
-        type: 'input',
-        default: userConfig.floder,
+        default: userConfig.dirStructure,
         required: false,
-        message: '',
-        alias: '存储文件夹'
-      },
-      {
-        name: 'save_with_date',
-        type: 'confirm',
-        required: false,
-        default: userConfig.saveWithDate,
-        alias: '按年月日存放'
+        message: '默认为存放在根目录。floder/:date | floder | :date。floder为自定义文件夹名',
+        alias: '存储结构'
       },
       {
         name: 'customUrl',
