@@ -8,15 +8,16 @@ PicGo Uploader For Coding.net
 npm i picgo-plugin-coding
 ```
 
-### Usage
+**考虑到coding API变更，现在使用的模拟浏览器的方式进行的授权，存在一定性能损耗。
+由于使用到puppeteer,不想安装完整puppeteer小伙伴可以考虑使用 [picgo-plugin-coding-lite](hhttps://github.com/zytomorrow/picgo-plugin-coding/tree/lite)**
 
-- 团队名称: coding.net团队名称
-- 项目名称: 需要保存图片的库名
-- token: coding.net's api token
-- 分支: 需要存放图片的分支。默认master
-- 存储文件夹: 需要存放照片的指定文件夹
-- 按年月日存放: 图片自动按日期路径存放与库中，可以存储文件夹混合使用
-- 自定义域名: 开启coding pages后的自定义域名，可不选
+### Usage
+- 团队名称/项目名称: coding.net团队名称/项目名称
+- 登录手机号或邮箱: coding.net的登录手机号或者邮箱
+- 密码: coding.net的登录密码
+- 仓库名称/分支: 填入仓库名和分支。可只填仓库名
+- 存储结构: 默认不填为存放在根目录。floder/:date | floder | :date。floder为自定义文件夹名
+- 自定义域名: 开启coding pages后的自定义域名，可不选。`后期pages迁移了后会产生CDN费用，请注意`
 
 ### coding pages配置
 1. 在项目的设置中开启持续部署
