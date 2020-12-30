@@ -54,15 +54,15 @@ const getCookies = async (broswerPath, groupName, account, password) => {
 
 module.exports = (ctx) => {
   const register = () => {
-    ctx.helper.uploader.register('coding', {
+    ctx.helper.uploader.register('coding-lite', {
       handle,
-      name: 'Coding图床',
+      name: 'Coding图床-lite',
       config: config
     });
   };
 
   const handle = async function (ctx) {
-    const userConfig = ctx.getConfig('picBed.coding');
+    const userConfig = ctx.getConfig('picBed.coding-lite');
     if (!userConfig) {
       throw new Error("Can't find uploader config");
     }
@@ -164,7 +164,7 @@ module.exports = (ctx) => {
   };
 
   const config = (ctx) => {
-    let userConfig = ctx.getConfig('picBed.coding');
+    let userConfig = ctx.getConfig('picBed.coding-lite');
     if (!userConfig) {
       userConfig = {};
     }
@@ -227,7 +227,7 @@ module.exports = (ctx) => {
     ];
   };
   return {
-    uploader: 'coding',
+    uploader: 'coding-lite',
     register
   };
 };
