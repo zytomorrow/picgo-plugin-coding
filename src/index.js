@@ -29,6 +29,7 @@ const postOptions = (realUrl, lastCommit, cookies, fileName, image, XSRF_TOKEN) 
 const getCookies = async (groupName, account, password) => {
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
+  await page._client.send('Network.clearBrowserCookies');
   await page.goto(`https://${groupName}.coding.net/login`,  {waitUntil: 'networkidle0'});
   await page.content();
   await page.type("#account", account);
