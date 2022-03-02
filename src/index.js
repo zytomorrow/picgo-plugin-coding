@@ -1,53 +1,105 @@
-const puppeteer = require('puppeteer');
+const api_url = 'https://e.coding.net/open-api';
 
-const postOptions = (realUrl, lastCommit, cookies, fileName, image, XSRF_TOKEN) => {
-  const formData = {
-    message: `upload ${fileName}`,
-    lastCommitSha: lastCommit,
-    newRef: '',
-    uploadFile: {
-      value: image,
-      options: {
-        filename: fileName
-      }
-    }
 
-  };
-  return {
-    method: 'POST',
-    url: realUrl,
+// 获取用户id
+const getUserId = async (ctx, teamName, token) => {
+  const response = await  ctx.Request.request({
+    method: 'GET',
+    url: `https://${teamName}.coding.net/api/me`,
     headers: {
-      contentType: 'multipart/form-data',
-      'User-Agent': 'PicGo',
-      Cookie: cookies,
-      'X-XSRF-TOKEN': XSRF_TOKEN
+      Authorization: `token ${token}`
     },
-    formData: formData
-  };
+    json: true
+  });
+  return response.id;
+
 };
 
-const getCookies = async (groupName, account, password) => {
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
-  await page.goto(`https://${groupName}.coding.net/login`,  {waitUntil: 'networkidle0'});
-  await page.content();
-  await page.type("#account", account);
-  await page.type("#password", password);
-  await page.click("#login > div > div.auth-root-3ssdaLNMpv > main > div.form-container-1lsWy1AThz > form > div.form-content-32QJSI8qUW > div.info-login-3niBdtBCEI > label > div > span > input");
-  await page.click("#login > div > div.auth-root-3ssdaLNMpv > main > div.form-container-1lsWy1AThz > form > div.form-button-group-1pG0raRyP0 > button");
-  await page.waitForNavigation();
-  const cookies_kv = await page.cookies();
-  await browser.close();
-  let cookies = '';
-  let XSRF_TOKEN = '';
-  cookies_kv.forEach(function (item) {
-    cookies += `${item.name}=${item.value};`;
-    if (item.name === 'XSRF-TOKEN') {
-      XSRF_TOKEN = item.value;
-    }
+// 获取项目id
+const getProjectId = async (ctx, token, projectName) => {
+  const response = await  ctx.Request.request({
+    method: 'POST',
+    url: `${api_url}?Action=DescribeCodingProjects`,
+    headers: {
+      Authorization: `token ${token}`
+    },
+    body: {
+      "Action":"DescribeCodingProjects",
+      "ProjectName": projectName
+    },
+    json: true
   });
-  return {cookies, XSRF_TOKEN};
+  return response.Response.Data.ProjectList[0].Id;
 };
+
+// 获取仓库id
+const getDepotId = async (ctx, token, projectId, depotName) => {
+  const response = await  ctx.Request.request({
+    method: 'POST',
+    url: `${api_url}?Action=DescribeProjectDepotInfoList`,
+    headers: {
+      Authorization: `token ${token}`
+    },
+    body: {
+      "Action":"DescribeProjectDepotInfoList",
+      "ProjectId": projectId
+    },
+    json: true
+  });
+  const depots = response.Response.DepotData.Depots;
+  for (let i = 0; i < depots.length; i++) {
+    if (depots[i].Name === depotName) {
+      return depots[i].Id;
+    }
+  }
+};
+
+// 获取仓库最后的sha
+const getLastCommitSha = async (ctx, token, depotId, branch) => {
+  const response = await  ctx.Request.request({
+    method: 'POST',
+    url: `${api_url}?Action=DescribeGitCommits`,
+    headers: {
+      Authorization: `token ${token}`
+    },
+    body: {
+      "Action": "DescribeGitCommits",
+      "DepotId": depotId,
+      "PageNumber": 1,
+      "PageSize": 1,
+      "Ref": branch,
+      "Path": "",
+      "StartDate": "",
+      "EndDate": ""
+    },
+    json: true
+  });
+  return response.Response.Commits[0].Sha;
+};
+
+// 上传文件
+const upLoadImgs = async (ctx, userId, token, depotId, lastCommitSha, branch, options) => {
+  const response = await  ctx.Request.request({
+    method: 'POST',
+    url: `${api_url}?Action=CreateBinaryFiles`,
+    headers: {
+      Authorization: `token ${token}`
+    },
+    body:{
+      "Action": "CreateBinaryFiles",
+      "DepotId": depotId,
+      "UserId": userId,
+      "SrcRef": branch,
+      "DestRef": branch,
+      "Message": `upload ${options.filesName}`,
+      "LastCommitSha": lastCommitSha,
+      "GitFiles": options.files
+    },
+    json: true
+  });
+  return response.Response.RequestId;
+};
+
 
 module.exports = (ctx) => {
   const register = () => {
@@ -64,94 +116,83 @@ module.exports = (ctx) => {
       throw new Error("Can't find uploader config");
     }
 
-    // 解析group Projetc
-    const groupNameProject = userConfig.groupNameProject.split('/');
-    const groupName = groupNameProject[0];
-    const project = groupNameProject[1];
-    // 解析 repo branch
-    const repoNameBranch = userConfig.repoNameBranch.split('/');
-    const repoName = repoNameBranch[0];
-    const branch = repoNameBranch[1] || 'master';
+    // 获取token
+    const token = userConfig.token;
+
+    // 解析group和Project
+    const teamNameProjectName = userConfig.teamNameProjectName.split('/');
+    const teamName = teamNameProjectName[0];
+    const projectName = teamNameProjectName[1];
+    // 解析 depot和branch
+    const depotNameBranch = userConfig.repoNameBranch.split('/');
+    const depotName = depotNameBranch[0];
+    const branch = depotNameBranch[1] || 'master';
     // 保存结构确定
     let floder = '';
     let saveWithDate = false;
     const dirStructure = userConfig.dirStructure || '';
-    const splitChar = dirStructure.indexOf('/');
-    if (splitChar !== -1) {
-      floder = dirStructure.slice(0, splitChar);
+    const splitCharIndex = dirStructure.indexOf('/');
+    // 判断是否需要保存至文件夹
+    if (splitCharIndex !== -1) {
+      floder = dirStructure.slice(0, splitCharIndex);
     }
-    if (dirStructure.slice(splitChar + 1, dirStructure.length) === ':date') {
+    // 判断是否需要按日期保存
+    if (dirStructure.slice(splitCharIndex + 1, dirStructure.length) === ':date') {
       saveWithDate = true;
     }
-    const account = userConfig.account;
-    const password = userConfig.passwd;
-    const {cookies, XSRF_TOKEN} = await getCookies(groupName, account, password);
-    let basicUrl = userConfig.customUrl || `https://${groupName}.coding.net/p/${project}/d/${repoName}/git/raw/${branch}`;
-    if (basicUrl[basicUrl.length - 1] === '/') {
-      basicUrl = basicUrl.substr(0, basicUrl.length - 2);
-    }
-    let suffixUrl = '';
-    const preUrl = `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${repoName}/git/upload/${branch}`;
+    // 组装最终path
+    let path = '';
     if (floder) {
       if (saveWithDate) {
         const date = new Date();
-        suffixUrl = `${floder}/${date .getFullYear()}/${date .getMonth() + 1}/${date .getDate()}`;
+        path = `${floder}/${date .getFullYear()}/${date .getMonth() + 1}/${date .getDate()}/`;
       } else {
-        suffixUrl = `${floder}`;
+        path = `${floder}/`;
       }
     } else {
       if (saveWithDate) {
         const date = new Date();
-        suffixUrl = `${date .getFullYear()}/${date .getMonth() + 1}/${date .getDate()}`;
+        path = `${date .getFullYear()}/${date .getMonth() + 1}/${date .getDate()}/`;
       }
     }
-    let realUrl = '';
-    if (suffixUrl.length !== 0) {
-      realUrl = `${preUrl}/${suffixUrl}`;
-    } else {
-      realUrl = `${preUrl}`;
+    // 自定义url设置
+    // todo: 自定义域名设置找不到了
+    let basicUrl = `https://${teamName}.coding.net/p/${projectName}/d/${depotName}/git/raw/${branch}/`;
+    if (basicUrl[basicUrl.length - 1] === '/') {
+      basicUrl = basicUrl.substr(0, basicUrl.length - 1);
     }
+
+    // 获取项目id
+    const projectId = await getProjectId(ctx, token, projectName);
+    // 获取仓库id
+    const depotId = await getDepotId(ctx, token, projectId, depotName);
+    // 获取最后一次sha
+    const lastCommitSha = await getLastCommitSha(ctx, token, depotId, branch);
+    // 获取用户id
+    const userId = await getUserId(ctx, teamName, token);
     try {
       const imgList = ctx.output;
+      const files = [];
+      let filesName = '';
       for (const i in imgList) {
-        let lastCommit = '';
-        // eslint-disable-next-line no-await-in-loop
-        const rep = await ctx.Request.request({
-          method: 'GET',
-          url: `https://${groupName}.coding.net/api/user/${groupName}/project/${project}/depot/${repoName}/git/tree/${branch}`,
-          headers: {
-            Cookie: cookies
-          }
-        });
-        lastCommit = JSON.parse(rep).data.lastCommit.commitId;
-        let image = imgList[i].buffer;
-        if (!image && imgList[i].base64Image) {
-          image = Buffer.from(imgList[i].base64Image, 'base64');
-        }
-
+        const image = imgList[i].buffer;
         const fileName = imgList[i].fileName.replace(/\s/g, '');
-        const postConfig = postOptions(
-            realUrl,
-            lastCommit,
-            cookies,
-            fileName,
-            image,
-            XSRF_TOKEN
-        );
-        // eslint-disable-next-line no-await-in-loop
-        const data = await ctx.Request.request(postConfig);
-        ctx.log.info(JSON.parse(data));
-        delete imgList[i].buffer;
-        // imgList[i].imgUrl = `https://${groupName}.coding.net/p/${project}/d/${project}/git/raw/${branch}/${fileName}`;
-        if (JSON.parse(data).code === 0) {
-          if (suffixUrl.length === 0) {
-            imgList[i].imgUrl = `${basicUrl}/${fileName}`;
-          } else {
-            imgList[i].imgUrl = `${basicUrl}/${suffixUrl}/${fileName}`;
-          }
-
-        }
+        files.push({
+          "Path": `${path}${fileName}`,
+          "Content": image.toString("base64"),
+          "NewPath": ""
+        });
+        filesName += `${fileName}  `;
       }
+      await upLoadImgs(ctx, userId, token, depotId, lastCommitSha, branch, {files, filesName});
+      for (const i in imgList) {
+        const fileName = imgList[i].fileName.replace(/\s/g, '');
+        delete imgList[i].base64Image;
+        delete imgList[i].buffer;
+        imgList[i].imgUrl = `${basicUrl}/${path}${fileName}`;
+      }
+
+
     } catch (err) {
       ctx.emit('notification', {
         title: '上传失败',
@@ -167,28 +208,20 @@ module.exports = (ctx) => {
     }
     return [
       {
-        name: 'groupNameProject',
+        name: 'teamNameProjectName',
         type: 'input',
-        default: userConfig.groupNameProject,
+        default: userConfig.teamNameProjectName,
         required: true,
-        message: 'groupNameProject',
+        message: 'teamNameProjectName',
         alias: '团队名称/项目名称'
       },
       {
-        name: 'account',
+        name: 'token',
         type: 'input',
-        default: userConfig.account,
+        default: userConfig.token,
         required: true,
-        message: 'account',
-        alias: '登录手机号或邮箱'
-      },
-      {
-        name: 'passwd',
-        type: 'password',
-        default: userConfig.passwd,
-        required: true,
-        message: 'passwd',
-        alias: '密码'
+        message: 'token',
+        alias: '个人token'
       },
       {
         name: 'repoNameBranch',
@@ -206,13 +239,6 @@ module.exports = (ctx) => {
         required: false,
         message: '默认为存放在根目录。floder/:date | floder | :date。floder为自定义文件夹名',
         alias: '存储结构'
-      },
-      {
-        name: 'customUrl',
-        type: 'input',
-        required: false,
-        default: userConfig.customUrl,
-        alias: '自定义域名'
       }
     ];
   };
